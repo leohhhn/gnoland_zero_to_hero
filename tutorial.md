@@ -14,19 +14,15 @@ Gno.Land is a Layer 1 blockchain network based on Tendermint2 technology. It aim
 
 ## Tutorial/Tech overview
 
-> _Familiarity with Golang, although not a necessity, is recommended in order to follow this tutorial._
+> _Note: Familiarity with Golang, although not a necessity, is recommended in order to follow this tutorial._
 
 In this tutorial we will go over the necessary tools and procedures required to develop in Gno.Land. These are:
 
 1. Environment setup
 2. Generating a Gno.Land keypair with `Gnokey`
-3. Writing, testing, and deploying a smart contract in `Gno` to a local node (mention GnoVM somewhere)
+3. Writing, testing, and deploying a smart contract in `Gno` to a local node
 4. Using `Gnofaucet` & `Gnoweb` to get test tokens
-5. Deploying our smart contract to a testnet
-6. Running a local node with `Gno.Land`
-
-Da li je gnoVM samo interpreter za Gno > Go ili je zapravo neka vrsta VMa?
-da li moras da buildujes gnovm ili mozes da radis sve bez buildovanja? sta bi se desilo ako ne buildujes nista?
+5. Deploying our smart contract to a local testnet
 
 ## Environment setup
 
@@ -38,7 +34,9 @@ Make sure you have installed the following:
 
 In order to get started with development, we need to clone the full [Gno.Land repository](https://github.com/gnolang/gno):
 
-`git clone git@github.com:gnolang/gno.git`
+```
+git clone git@github.com:gnolang/gno.git
+```
 
 After going into the cloned repository, we can build and install the aformentioned tools with the following commands:
 
@@ -81,35 +79,141 @@ gnokey list
 
 Other than generating keypairs, `gnokey` is used to interact with the Gno.Land blockchain via the CLI. `Gnokey` can fetch information about an address, call functions on smart contracts and send state changes (transactions) to the network. This will be covered later.
 
+Here is a sample keypair named Dev:
+
+```
+$ gnokey list
+
+0. Dev (local) - addr: g10rdr9mhc7xzlyqt9fu3nhl95jy8hmfdyws8yds pub: gpub1pgfj7ard9eg82cjtv4u4xetrwqer2dntxyfzxz3pq028mgdjsyjx6uzfcu7zu2nlmsn2yvqk458xh9trddjkta338xcqq94dfrt, path: <nil>
+```
+
+We will use the this address later.
+
 ## Writing, testing, and deployment Realms
 
-In Gno.Land, smart contracts are called [Realms](https://docs.onbloc.xyz/introduction-to-gnoland/what-is-gnoland/concepts#realm). Here are three `Gno.Land` concepts we need to cover before diving into the actual development:
+In Gno.Land, smart contracts are called [Realms](https://docs.onbloc.xyz/introduction-to-gnoland/what-is-gnoland/concepts#realm). Here are three Gno.Land concepts we need to cover before diving into the actual development of Realms:
 
 1. Packages vs Realms
-2. Paths
-3. Render functions
+2. Render functions
+3. Paths
 
 ### Packages vs Realms
 
-// da li postoji razlika izmedju addpkg i deploymenta realma? da li ono sto razlikuje package od realm u glavnom smislu je to da realm ima init funkciju, koja updejtuje stejt upon addpkg?
-
-Gno.Land code can be divided into two main groups: `packages` & `realms`. Put simply, `packages` represent stateless code that is intended to be reused - libraries. `Realms` on the other hand, represent smart contracts that hold arbitrary state, and can be deployed on-chain.
-
-### Paths
-
-// package vs realm code vs realm instance  
-// takodje je confusing to da deployment realma i paketa se sve radi preko addpkg - koja je krucijalna razlika izmedju ova dva? po cemu ih GNOVM razlikuje?
-
-Gno.Land saves its packages and realms in a tree like structure - similar to a classic file system. You will be able to find deployed packages under the .... path. When develping a smart contract in Gno, you will be able to access these packages through the paths they are deployed to.
-
-// da li je logika da ti kad radis developemnt imas full node kod sebe paa zaaato imas sve pakete i realme u lokalnim putanjama dostupne? sta ako node postane preveliki? da li mozes da pitas remote node za pakete za development nekako?
-
-Upon deployment, a developer must(?) provide a path to place their Realm instance at. This provides a quick and easy way to access instances of Realms through a full node. (zasto je ovo bitno, kako lepo objasniti poentu?)
+Gno.Land code can be divided into two main groups: packages & realms. Put simply, packages represent stateless code that is intended to be reused - libraries. Realms on the other hand, represent smart contracts that can hold arbitrary state and functionality, and can be deployed on-chain.
 
 ### Render functions
 
-.... nadovezivanje na putanje, why render functions make sense
+Each Realm can implement a `Render` function which allows the developer of the Realm to display the state the way they intend to. A render function should return a valid markdown string. Of course, similar to Solidity, Gno also has the concept of `view` functions, allowing the state of the contract to be displayed in an arbitrary UI.
 
-Each Realm can implement a `Render` function, that will allow easy access to the state of the Realm through markdown text. .... dodati jos
+### Paths
+
+Gno.Land saves its packages and realms in a tree like structure - similar to a classic file system. You will be able to find added packages under the `"gno.land/p/"` path. When developing a smart contract in Gno, you will be able to access and import these packages through the paths they are deployed to.
+
+Upon deployment, a developer must(?) provide a path to place their Realm instance at. This provides a quick and easy way to access the state of Realms.
+
+   
+
+
+
+
+
+
+
+
+
+
+          asd   
+
+
+
+     asd
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      asd
+
+       
+       
+        
+         
+         d
+          as
+           
+
+
+           
+                 asd
+
 
 ## Using Gnofaucet & Gnoweb to get test tokens
+
+We can easily access the aforementioned file system which holds all packages and realms with the use of `gnoweb`. Gnoweb will spin up a local front-end that can allow you to see already deployed packages and realms.
+
+### Setting up Gnofaucet
+
+To fund the faucet, we need to import an keypair with a pre-mined balance to `gnokey`. Run the following:
+
+```
+gnokey add --recover Faucet
+```
+
+Gnokey will ask you to provide a mnemonic for the keypair. Put in the following mnemonic:
+
+```
+source bonus chronic canvas draft south burst lottery vacant surface solve popular case indicate oppose farm nothing bullet exhibit title speed wink action roast
+```
+
+To start the faucet, we first need to spin up our local node. We will also need this node to be running in order to see other tools in action, as well as deploy Realms to the local testnet. Start the node with `gnoland start`.
+
+If the node has started successfully, you should see blocks being produced.
+
+Then, start the faucet, serving the `dev` chain, with the `Faucet` keypair:
+
+```
+gnofaucet serve --chain-id dev Faucet
+```
+
+### Running Gnoweb
+
+Run the `gnoweb` command from within the `gno.land` subfolder. A local front-end will be running on `127.0.0.1:8888`.
+
+Gnoweb also provides us with a simple interface to send local testnet tokens to our address that we generated in the previous steps.
+
+By going to `http://127.0.0.1:8888/faucet`, you will be able to input the address to send tokens to. 
+
+By default, the faucet sends `1000000ugnot` to the provided address, which is equal to `1 GNOT` token.
+
+In order to check the balance of your address, you can use the [query](https://docs.onbloc.xyz/docs/cli/gnokey#make-an-abci-query) functionality of `gnokey` to make an ABCI query to the node.
+
+```
+$ gnokey query bank/balances/bank/balances/g10rdr9mhc7xzlyqt9fu3nhl95jy8hmfdyws8yds
+
+height: 0
+data: "1000000ugnot"
+
+```
+
+
+
