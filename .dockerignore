@@ -1,0 +1,26 @@
+.dockerignore
+build/
+Dockerfile
+misc/
+docker-compose.yml
+tests/docker-integration/
+
+# gitignore
+*.sw[pon]
+cmd/foo.go
+unsorted.*
+.DS_Store
+data/*
+proto/*
+testdir/
+pkgs/sdk/vm/_testdata
+build/*
+*.tx
+*.log.*
+*.log
+*.gno.gen.go
+*.gno.gen_test.go
+.vscode
+.idea
+*.pb.go
+pbbindings.go
