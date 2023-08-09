@@ -2,15 +2,15 @@
 
 > _Written by @leohhhn, August 10th 2023_
 
-In this tutorial, we will enter the world of `Gno.Land`, and build our own smart contract using the `Gno` programming language. `Gno` is an interpreted version of `Go` that shares 99% of the functionality with Go, allowing us to write blockchain-specific code in a secure, battle-tested language that many developers already have in their skill set.
+In this tutorial, we will enter the world of Gno.Land, and build our own smart contract using the Gno programming language. Gno is an interpreted version of Golang that shares 99% of the functionality with Go, allowing us to write blockchain-specific code in a secure, battle-tested language that many developers already have in their skill set.
 
-We will go over what Gno.Land is, and how you can use the full potential of `Gno` to build secure blockchain applications in a familiar blockchain language.
+We will go over what Gno.Land is, and how you can use the full potential of Gno to build secure blockchain applications in a familiar blockchain language.
 
 ## Why Gno.Land?
 
 // maybe talk more towards an eth dev that knows nothing about cosmos?
 
-Gno.Land is a Layer 1 blockchain network based on Tendermint2 technology. It aims to offer security, scalability, and high-quality smart contract libraries to developers while also being interconnected with existing Cosmos chains via IBC1.
+Gno.Land is a Layer 1 blockchain network based on Tendermint2 technology. It aims to offer security, scalability, and high-quality smart contract libraries to developers while also being interconnected with existing Cosmos chains via IBC1. Gno.Land comes with GnoVM, a VM which allows us to translate Gno to Go. Currently, Gno.Land has a development testnet out, with the mainnet release expected in Q1 of 2024.
 
 ## Tutorial/Tech overview
 
@@ -20,9 +20,10 @@ This tutorial will review the tools and procedures required to develop in Gno.La
 
 1. Environment setup
 2. Generating a Gno.Land keypair with `Gnokey`
-3. Writing, testing, and deploying a smart contract in `Gno` to a local node
-4. Using `Gnofaucet` & `Gnoweb` to get test tokens
-5. Deploying our code to a local testnet
+3. Writing & testing a smart contract in `Gno`
+4. Hands-on
+5. Using `Gnofaucet` & `Gnoweb` to get test tokens
+6. Deploying our code to a local testnet
 
 ## Environment setup
 
@@ -91,7 +92,7 @@ $ gnokey list
 
 We will use the this address later.
 
-## Writing, testing, and deploying in Gno.Land
+## Writing & testing in Gno.Land
 
 In Gno.Land, smart contracts are called [Realms](https://docs.onbloc.xyz/introduction-to-gnoland/what-is-gnoland/concepts#realm). Here are three Gno.Land concepts we need to cover before diving into the actual development of Realms:
 
@@ -115,7 +116,7 @@ A developer must provide a path to place their realm instance upon deployment. T
 
 Let's get started with the code. We will build a simple app allowing users to sign up for a whitelist before a specific deadline.
 
-## Code
+## Hands-on
 
 We will write a simple package and realm combination to act as a whitelisting service.
 
@@ -551,9 +552,9 @@ data: "1000000ugnot"
 
 ```
 
-## Deployment
+## Deployment to a local testnet
 
-First, we need to deploy our `whitelist` package. Navigate to the package directory `examples/whitelist/p`, and run the following command:
+First, we need to deploy our `whitelist` package. Make sure that the local node is running, and navigate to the package directory `examples/whitelist/p`, and run the following command:
 
 ```
 gnokey maketx addpkg \
