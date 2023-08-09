@@ -5,6 +5,7 @@ import (
 	"time"
 )
 
+// Main struct used in Realm
 type Whitelist struct {
 	name     string
 	owner    std.Address
@@ -14,6 +15,7 @@ type Whitelist struct {
 	userList []std.Address
 }
 
+// Create new Whitelist instance from arguments
 func NewWhitelist(name string, deadline time.Time, maxUsers int64, owner std.Address) *Whitelist {
 	return &Whitelist{
 		name:     name,
@@ -48,7 +50,8 @@ func (w *Whitelist) AddUserToList(userToAdd std.Address) bool {
 	w.userList = append(w.userList, userToAdd)
 	return true
 }
-// returns true if userToCheck is on whitelist w
+
+// Check if userToCheck is on whitelist w
 func (w *Whitelist) IsOnWhitelist(userToCheck std.Address) bool {
 	for _, user := range w.GetWhitelistedUsers() {
 		if user.String() == userToCheck.String() {
@@ -58,7 +61,7 @@ func (w *Whitelist) IsOnWhitelist(userToCheck std.Address) bool {
 	return false
 }
 
-// returns true if txSender is owner of w
+// Check if txSender is owner of w
 func (w *Whitelist) IsOwnerOfWhitelist(txSender std.Address) bool {
 	return txSender == w.GetWhitelistOwner()
 }
