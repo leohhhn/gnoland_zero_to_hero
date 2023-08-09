@@ -11,27 +11,30 @@ import (
 )
 
 var (
-	whitelistList *avl.Tree
+	whitelistTree *avl.Tree
 )
 
 func init() {
-	whitelistList = avl.NewTree()
+	whitelistTree = avl.NewTree()
 }
 
-// package and realm function names cannot be the same seemingly?
-func NewWhitelistInstance(name string, deadline time.Time, maxUsers int64) (int, string) {
+func NewWhitelistInstance(name string, deadline int64, maxUsers int64) (int, string) {
 
-	// if deadline.Before(time.Now()) {
-	// 	return _, "deadline must be in the future!"
-	// }
+	if deadline <= time.Now().Unix() {
+		return -1, "deadline cannot be in the past"
+	}
 
 	txSender := std.GetOrigCaller()
 
-	id := whitelistList.Size() // what type?
+	id := whitelistTree.Size() // what type?
 
-	w := whitelist.NewWhitelist(name, deadline, maxUsers, txSender)
+	if maxUsers <= 0 {
+		return -1, "Maximum number of users cannot be less than 1"
+	}
 
-	whitelistList.Set(
+	w := whitelist.NewWhitelist(name, time.Unix(deadline, 0), maxUsers, txSender)
+
+	whitelistTree.Set(
 		ufmt.Sprintf("%d", id),
 		w,
 	)
@@ -39,76 +42,114 @@ func NewWhitelistInstance(name string, deadline time.Time, maxUsers int64) (int,
 	return id, "successfully created whitelist!"
 }
 
-// func SignUpToWhitelist(whitelistID int) string {
+func SignUpToWhitelist(whitelistID int) string {
 
-// 	txSender := std.GetOrigCaller()
+	id := ufmt.Sprintf("%d", whitelistID)
 
-// 	id := ufmt.Sprintf("%d", whitelistID)
+	txSender := std.GetOrigCaller()
 
-// 	whiteListRaw, exists := whitelistList.Get(id)
-// 	if !exists {
-// 		return "whitelist does not exist"
-// 	}
+	whiteListRaw, exists := whitelistTree.Get(id)
 
-// 	w, _ = whiteListRaw.(*whitelist.Whitelist)
+	if !exists {
+		return "whitelist does not exist"
+	}
 
-// 	w.AddUserToList(txSender)
+	w, _ := whiteListRaw.(*whitelist.Whitelist)
 
-// 	whitelistList.Set(
-// 		id,
-// 		w,
-// 	)
+	ddl := w.GetWhitelistDeadline()
 
-// 	return ufmt.Sprintf("successfully added user to whitelist %d", whitelistID)
-// }
+	// error handling
+	if w.IsOnWhitelist(txSender) {
+		return "user already in whitelist"
+	}
 
-// `func Render(path string) string {
-// 	if path == "" {
-// 		return renderHomepage()
-// 	}
+	if ddl.Unix() <= time.Now().Unix() {
+		return "whitelist already closed :/"
+	}
 
-// 	return "unknown page"
-// }
+	if w.GetMaxUsers() <= int64(len(w.GetWhitelistedUsers())) {
+		return "whitelist full"
+	}
+
+	w.AddUserToList(txSender)
+
+	whitelistTree.Set(
+		id,
+		w,
+	)
+
+	return ufmt.Sprintf("successfully added user to whitelist %d", whitelistID)
+}
+
+func Render(path string) string {
+	if path == "" {
+		return renderHomepage()
+	}
+
+	return "unknown page"
+}
 
 func renderHomepage() string {
 	var b bytes.Buffer
 
-	b.WriteString("## Whitelist signup\n\n")
+	b.WriteString("# Sign up to a Whitelist!\n\n")
 
-	if whitelistList.Size() == 0 {
+	if whitelistTree.Size() == 0 {
 		// No parties available
-		b.WriteString("### No whitelists to sing up to currently!")
+		b.WriteString("### No whitelists available currently!")
 
 		return b.String()
 	}
 
 	// For each category, write the name
-	whitelistList.Iterate("", "", func(key string, value interface{}) bool {
+	whitelistTree.Iterate("", "", func(key string, value interface{}) bool {
 		// Write out the whitelist details
-		whitelistList := value.(*whitelist.Whitelist)
+		w := value.(*whitelist.Whitelist)
+		ddl := w.GetWhitelistDeadline()
 
 		b.WriteString(
 			ufmt.Sprintf(
-				"## %s: %s - %s\n",
+				"## Whitelist #%s: %s\n",
 				key, // whitelist ID
-				whitelist.GetWhitelistName(),
-				whitelist.GetWhitelistDeadline().Format("02.01.2006. 15:04"),
+				w.GetWhitelistName(),
 			),
 		)
 
-		// Print guest list
-		if users := party.GetWhitelistedUsers(); len(users) > 0 {
+		if ddl.Unix() > time.Now().Unix() {
 			b.WriteString(
-				ufmt.Sprintf("### Whitelisted users: (%d)\n", len(users)),
+				ufmt.Sprintf(
+					"Whitelist sign-ups close at: %s\n",
+					w.GetWhitelistDeadline().Format("15:04:05 02.01.2006\n"),
+				),
+			)
+		} else {
+			b.WriteString(
+				ufmt.Sprintf(
+					"Whitelist sign-ups closed!\n",
+				),
+			)
+		}
+
+		b.WriteString(
+			ufmt.Sprintf(
+				"Maximum number of users in whitelist: %d\n\n",
+				w.GetMaxUsers(),
+			),
+		)
+
+		// Print whitelisted users
+		if users := w.GetWhitelistedUsers(); len(users) > 0 {
+			b.WriteString(
+				ufmt.Sprintf("Currently whitelisted users: %d\n\n", len(users)),
 			)
 
 			for index, user := range users {
 				b.WriteString(
-					ufmt.Sprintf("#%d - %s\n", index, user),
+					ufmt.Sprintf("#%d - %s  \n", index, user),
 				)
 			}
 		} else {
-			b.WriteString("_Noone is whitelisted... yet_\n")
+			b.WriteString("No addresses are whitelisted currently\n")
 		}
 
 		b.WriteString("\n")

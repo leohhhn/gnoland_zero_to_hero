@@ -33,9 +33,6 @@ func TestWhitelist_Setup(t *testing.T) {
 		t.Fatal("invalid max user number")
 	}
 
-	if w.GetWhitelistActive() != false {
-		t.Fatal("invalid active variable")
-	}
 
 	if w.GetWhitelistDeadline() != deadline {
 		t.Fatal("invalid deadline")
@@ -64,28 +61,6 @@ func TestWhitelist_CallerNotOwner(t *testing.T) {
 	}
 }
 
-func TestWhitelist_SetActive(t *testing.T) {
-	var (
-		name     = "first whitelist!"
-		deadline = time.Now().Add(15)
-		maxUsers = 100
-	)
-
-	alice := testutils.TestAddress("alice")
-	std.TestSetOrigCaller(alice)
-
-	w := NewWhitelist(name, deadline, int64(maxUsers), alice)
-
-	if w.GetWhitelistActive() != false {
-		t.Fatal("whitelist should be inactive")
-	}
-
-	w.SetWhitelistActive(true)
-
-	if w.GetWhitelistActive() != true {
-		t.Fatal("whitelist should be active")
-	}
-}
 
 // FIXME: how to wait a block to test deadline?
 // func TestWhitelist_ExceededDeadline(t *testing.T) {
