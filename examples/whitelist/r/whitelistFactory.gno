@@ -96,17 +96,8 @@ func SignUpToWhitelist(whitelistID int) string {
 	return ufmt.Sprintf("successfully added user to whitelist %d", whitelistID)
 }
 
-// Default render function
-func Render(path string) string {
-	if path == "" {
-		return renderHomepage()
-	}
-
-	return "unknown page"
-}
-
 // Renders all whitelists with their details
-func renderHomepage() string {
+func Render() string {
 	var b bytes.Buffer
 
 	b.WriteString("# Sign up to a Whitelist\n\n")

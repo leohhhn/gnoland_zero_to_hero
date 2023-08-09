@@ -11,7 +11,6 @@ type Whitelist struct {
 	owner    std.Address
 	deadline time.Time
 	maxUsers int64
-	active   bool
 	userList []std.Address
 }
 

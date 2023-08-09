@@ -14,7 +14,7 @@ Gno.Land is a Layer 1 blockchain network based on Tendermint2 technology. It aim
 
 ## Tutorial/Tech overview
 
-> _Note: Familiarity with Golang, although not a necessity, is recommended in order to follow this tutorial._
+> _Note: Familiarity with Golang, although not a necessity, is highly recommended in order to follow this tutorial._
 
 In this tutorial we will go over the necessary tools and procedures required to develop in Gno.Land. These are:
 
@@ -89,7 +89,7 @@ $ gnokey list
 
 We will use the this address later.
 
-## Writing, testing, and deployment Realms
+## Writing, testing, and deploying in Gno.Land
 
 In Gno.Land, smart contracts are called [Realms](https://docs.onbloc.xyz/introduction-to-gnoland/what-is-gnoland/concepts#realm). Here are three Gno.Land concepts we need to cover before diving into the actual development of Realms:
 
@@ -113,61 +113,373 @@ Upon deployment, a developer must(?) provide a path to place their Realm instanc
 
 Let's get started with code. We will be building a simple app that will allow users to sign up for a whitelist before a certain deadline.
 
-                          
+## Code
 
+We will write a simple package and realm combination that will act as a whitelisting service.
 
+Any user will be able to create their own whitelist with a specific signup deadline and max user sign up number, and any user will be able to sign up exactly once to each whitelist which has not exceeded the deadline nor the max amount of sign ups.
 
+If you're using VSCode for editing your files, you can install the `Gno` extension which will handle syntax highlighting and code formatting for you.
 
+### Whitelist Package
 
+From the repo root folder, go into `examples`, and create a new directory `whitelist`, in which we will place our code. Within that directory, create two directories which will separate the packages from the realms we write:
 
+```
+cd examples
+mkdir whitelist && cd whitelist
+mkdir p && mkdir r
+cd p
 
+```
 
+Going into the `/p/` directory we just made, we can create a file called `whitelist.gno` where we will write our package.
 
+```
+touch whitelist.gno
+```
 
-          asd   
+In `whitelist.gno`, we will place our `Whitelist` struct and all of its functionality:
 
+```
+package whitelist
 
+import (
+	"std"
+	"time"
+)
 
-     asd
+type Whitelist struct {
+	name     string         // Name of whitelist
+	owner    std.Address    // Owner of whitelist
+	deadline time.Time      // Whitelist deadline
+	maxUsers int64          // Max number of users in whitelist
+	userList []std.Address  // Currently signed up users
+}
 
+```
 
+We will be using the [standard library](https://docs.onbloc.xyz/docs/standard-libraries) provided by Gno to handle blockchain-specific data types. In the code above, we are defining a struct that will hold all information we need about a specific whitelist. We are using `std.Address` as the native address type provided in Gno.
 
+Next, we can write functions that we will need to act upon this struct:
 
+```
+// Create new Whitelist instance from arguments
+func NewWhitelist(name string, deadline time.Time, maxUsers int64, owner std.Address) *Whitelist {
+	return &Whitelist{
+		name:     name,
+		owner:    owner,
+		deadline: deadline,
+		maxUsers: maxUsers,
+		userList: make([]std.Address, 0),
+	}
+}
 
+func (w *Whitelist) GetWhitelistName() string {
+	return w.name
+}
 
+func (w *Whitelist) GetWhitelistOwner() std.Address {
+	return w.owner
+}
 
+func (w *Whitelist) GetWhitelistDeadline() time.Time {
+	return w.deadline
+}
 
+func (w *Whitelist) GetMaxUsers() int64 {
+	return w.maxUsers
+}
 
+func (w *Whitelist) GetWhitelistedUsers() []std.Address {
+	return w.userList
+}
 
+func (w *Whitelist) AddUserToList(userToAdd std.Address) bool {
+	w.userList = append(w.userList, userToAdd)
+	return true
+}
 
+// Check if userToCheck is on whitelist w
+func (w *Whitelist) IsOnWhitelist(userToCheck std.Address) bool {
+	for _, user := range w.GetWhitelistedUsers() {
+		if user.String() == userToCheck.String() {
+			return true
+		}
+	}
+	return false
+}
 
+// Check if txSender is owner of w
+func (w *Whitelist) IsOwnerOfWhitelist(txSender std.Address) bool {
+	return txSender == w.GetWhitelistOwner()
+}
+```
 
+This completes our whitelist package. In order to test it, we can create a new file in the same directory called `whitelist_test.gno`.
 
+In `whitelist_test.gno`, we are able to do classic Go testing upon the functionality of our package. Every function name that starts with `"Test"` will automatically be run as a test case.
 
+We are using the `testutils` package to provide blockchain-specific test functionality, such as setting an arbitrary caller to a transaction, or generating a new address from a within the test.
 
+```
+package whitelist
 
+import (
+	"std"
+	"testing"
+	"time"
 
+	"gno.land/p/demo/testutils"
+)
 
+func TestWhitelist_Setup(t *testing.T) {
+	var (
+		name     = "First whitelist!"
+		deadline = time.Now().Add(15)
+		maxUsers = 100
+	)
 
+   // generate mock address
+	alice := testutils.TestAddress("alice")
 
+   // use mock address to execute test transaction
+	std.TestSetOrigCaller(alice)
 
+	w := NewWhitelist(name, deadline, int64(maxUsers), alice)
 
+	if w.GetWhitelistOwner() != alice {
+		t.Fatal("invalid whitelist owner")
+	}
 
+	if w.GetMaxUsers() != maxUsers {
+		t.Fatal("invalid max user number")
+	}
 
-      asd
+	if w.GetWhitelistDeadline() != deadline {
+		t.Fatal("invalid deadline")
+	}
 
-       
-       
-        
-         
-         d
-          as
-           
+	if len(w.GetWhitelistedUsers()) != 0 {
+		t.Fatal("invalid whitelisted user list")
+	}
+}
+```
 
+To compile the package and run the tests, we can run the following command from the same directory:
 
-           
-                 asd
+```
+gno test -verbose ./
+```
 
+### WhitelistFactory Realm
+
+The main thing that differentiates packages from realms is the fact that realms hold state, and have a initializer function. In our `/r/` directory, create a new file `whitelistFactory.gno`:
+
+```
+cd ..
+cd r
+touch whitelistFactory.gno
+```
+
+In the file, we can start writing our Realm:
+
+```
+package whitelistfactory
+
+import (
+	"bytes"
+	"std"
+	"time"
+
+	"gno.land/p/demo/avl"
+	"gno.land/p/demo/ufmt"
+	"gno.land/p/demo/whitelist"
+)
+
+// State variables
+var (
+	whitelistTree *avl.Tree
+)
+
+// Constructor
+func init() {
+	whitelistTree = avl.NewTree()
+}
+```
+
+Here, we have two particular Gno-specific things: the AVL Tree, and the `init()` function.
+
+Since all actions on the Gno.Land blockchain must be detereministic, we are unable to use the native Go `map` functionality to store our data. This is why we are using custom-built [AVL trees](https://docs.onbloc.xyz/docs/packages#avl), and expose a classic `get/set` API to the developer.
+
+We also have a `init()` function which will run upon deployment of the Realm. Upon deployment, we are simply instantiating the AVL tree that will store all of our Whitelist instances.
+
+Moving on:
+```
+func NewWhitelist(name string, deadline int64, maxUsers int64) (int, string) {
+
+	// Check if deadline is in the past
+	if deadline <= time.Now().Unix() {
+		return -1, "deadline cannot be in the past"
+	}
+
+	// Get user who sent the transaction
+	txSender := std.GetOrigCaller()
+
+	// We will use the current size of the tree for the ID
+	id := whitelistTree.Size()
+
+	if maxUsers <= 0 {
+		return -1, "Maximum number of users cannot be less than 1"
+	}
+
+	// Create new whitelist instance
+	w := whitelist.NewWhitelist(name, time.Unix(deadline, 0), maxUsers, txSender)
+
+	// Update AVL tree with new state
+	whitelistTree.Set(ufmt.Sprintf("%d", id), w)
+
+	return id, "successfully created whitelist!"
+}
+
+```
+
+The function above creates an instance of a whitelist with arguments provided to it. This is a public function as indicated by the uppercase first letter in its name - meaning anyone can call it.
+
+Similar to Solidity's `msg.sender` functionality, we can use `std.GetOrigCaller()` to get the address of the transaction sender.
+
+Next, we need to write the function that users will use to sign up to specific whitelists.
+
+To sign up to a whitelist, 4 conditions must be met:
+1. The whitelist must exist
+2. The sign-up deadline must be in the future
+3. The user cannot already be on the whitelist
+4. The whitelist must have enough room for the user to sign up
+
+If all conditions are met, we will update the whitelist instance in the AVL tree to its new state. 
+
+```
+func SignUpToWhitelist(whitelistID int) string {
+	// Get ID
+	id := ufmt.Sprintf("%d", whitelistID)
+	// Get txSender
+	txSender := std.GetOrigCaller()
+
+	// Try to get specific whitelist from AVL tree
+	whiteListRaw, exists := whitelistTree.Get(id)
+
+	if !exists {
+		return "whitelist does not exist"
+	}
+
+	// Cast raw Tree data into "Whitelist" type
+	w, _ := whiteListRaw.(*whitelist.Whitelist)
+
+	ddl := w.GetWhitelistDeadline()
+
+	// error handling
+	if w.IsOnWhitelist(txSender) {
+		return "user already in whitelist"
+	}
+
+	// If deadline has passed
+	if ddl.Unix() <= time.Now().Unix() {
+		return "whitelist already closed"
+	}
+
+	// If whitelist is full
+	if w.GetMaxUsers() <= int64(len(w.GetWhitelistedUsers())) {
+		return "whitelist full"
+	}
+
+	// Add txSender to user list
+	w.AddUserToList(txSender)
+
+	// Update the AVL tree with new state
+	whitelistTree.Set(id, w)
+
+	return ufmt.Sprintf("successfully added user to whitelist %d", whitelistID)
+}
+
+```
+
+Finally, we will write a `Render` function to be able to display the state of our Realm. The Render function will display all whitelists that currently exist in the state of the Realm, along with their details.
+
+We will put valid markdown lines generated based on the state of the Realm into a `Buffer`, which we will finally convert into a string that will be dispalyed later.
+
+```
+func Render() string {
+	var b bytes.Buffer
+
+	b.WriteString("# Sign up to a Whitelist\n\n")
+
+	if whitelistTree.Size() == 0 {
+		b.WriteString("### No whitelists available currently!")
+		return b.String()
+	}
+
+	// Iterate through AVL tree
+	whitelistTree.Iterate("", "", func(key string, value interface{}) bool {
+		w := value.(*whitelist.Whitelist)
+		ddl := w.GetWhitelistDeadline()
+
+		// Add whitelist name
+		b.WriteString(
+			ufmt.Sprintf(
+				"## Whitelist #%s: %s\n",
+				key, // whitelist ID
+				w.GetWhitelistName(),
+			),
+		)
+
+		// Check if whitelist deadline is past due
+		if ddl.Unix() > time.Now().Unix() {
+			b.WriteString(
+				ufmt.Sprintf(
+					"Whitelist sign-ups close at: %s\n",
+					w.GetWhitelistDeadline().Format("15:04:05 02.01.2006\n"),
+				),
+			)
+		} else {
+			b.WriteString(
+				ufmt.Sprintf(
+					"Whitelist sign-ups closed!\n\n",
+				),
+			)
+		}
+
+		// List max number of users in waitlist
+		b.WriteString(
+			ufmt.Sprintf(
+				"Maximum number of users in whitelist: %d\n\n",
+				w.GetMaxUsers(),
+			),
+		)
+
+		// List all users that are currently whitelisted
+		if users := w.GetWhitelistedUsers(); len(users) > 0 {
+			b.WriteString(
+				ufmt.Sprintf("Currently whitelisted users: %d\n\n", len(users)),
+			)
+
+			for index, user := range users {
+				b.WriteString(
+					ufmt.Sprintf("#%d - %s  \n", index, user),
+				)
+			}
+		} else {
+			b.WriteString("No addresses are whitelisted currently\n")
+		}
+
+		b.WriteString("\n")
+		return false
+	})
+
+	return b.String()
+}
+```
+
+That completes our realm code, and we can go onto deploying it alogn with the `whitelist` package from before.
 
 ## Using Gnofaucet & Gnoweb to get test tokens
 
@@ -203,7 +515,7 @@ Run the `gnoweb` command from within the `gno.land` subfolder. A local front-end
 
 Gnoweb also provides us with a simple interface to send local testnet tokens to our address that we generated in the previous steps.
 
-By going to `http://127.0.0.1:8888/faucet`, you will be able to input the address to send tokens to. 
+By going to `http://127.0.0.1:8888/faucet`, you will be able to input the address to send tokens to.
 
 By default, the faucet sends `1000000ugnot` to the provided address, which is equal to `1 GNOT` token.
 
@@ -216,6 +528,3 @@ height: 0
 data: "1000000ugnot"
 
 ```
-
-
-
