@@ -2,17 +2,15 @@
 
 > _Written by @leohhhn, August 10th 2023_
 
-In this tutorial, we will enter the world of Gno.Land, and build our own smart contract using the Gno programming language. Gno is an interpreted version of Golang that shares 99% of the functionality with Go, allowing us to write blockchain-specific code in a secure, battle-tested language that many developers already have in their skill set.
+In this tutorial, we will enter the world of **Gno.Land**, and build our own smart contract using the **Gno** programming language. Gno is an interpreted version of Golang that shares 99% of the functionality with Go, allowing us to write blockchain-specific code in a secure, battle-tested language that many developers already have in their skill set.
 
 We will go over what Gno.Land is, and how you can use the full potential of Gno to build secure blockchain applications in a familiar blockchain language.
 
 ## Why Gno.Land?
 
-// maybe talk more towards an eth dev that knows nothing about cosmos?
+Gno.Land is a layer 1 blockchain network based on Tendermint2 technology. It aims to offer security, scalability, and high-quality smart contract libraries to developers while also being interconnected with existing Cosmos chains via IBC1. Gno.Land comes with GnoVM, a VM which allows us to translate Gno to Go. Currently, Gno.Land has a development testnet out, with the mainnet release expected in Q1 of 2024. You can read more about Gno.Land [here](https://gno.land/).
 
-Gno.Land is a Layer 1 blockchain network based on Tendermint2 technology. It aims to offer security, scalability, and high-quality smart contract libraries to developers while also being interconnected with existing Cosmos chains via IBC1. Gno.Land comes with GnoVM, a VM which allows us to translate Gno to Go. Currently, Gno.Land has a development testnet out, with the mainnet release expected in Q1 of 2024.
-
-## Tutorial/Tech overview
+## Tutorial overview
 
 > _Note: Familiarity with Golang, although not a strict necessity, is highly recommended to follow this tutorial._
 
@@ -21,7 +19,7 @@ This tutorial will review the tools and procedures required to develop in Gno.La
 1. Environment setup
 2. Generating a Gno.Land keypair with `Gnokey`
 3. Writing & testing a smart contract in `Gno`
-4. Hands-on
+4. Hands-on coding
 5. Using `Gnofaucet` & `Gnoweb` to get test tokens
 6. Deploying our code to a local testnet
 
@@ -71,16 +69,14 @@ To generate a new keypair and add it to local storage, run:
 gnokey add {your keypair name}
 ```
 
-Next, `Gnokey` will ask you for a password to encrypt your keypair and save it in local storage under `{your keypair name}`.
-This will generate a keypair based on a random `BIP39` mnemonic phrase, which will be displayed shortly. Write this phrase down if you plan to use this keypair in the long run.
+Next, `Gnokey` will ask you for a password to encrypt your keypair and save it under `{your keypair name}`.
+This will generate a keypair based on a random BIP39 mnemonic phrase, which will be displayed shortly. Write this phrase down if you plan to use this keypair in the long run.
 
 To see currently saved keypairs, run:
 
 ```
 gnokey list
 ```
-
-Other than generating keypairs, `gnokey` is used to interact with the Gno.Land blockchain via the CLI. `Gnokey` can fetch information about an address, call functions on smart contracts and send state changes (transactions) to the network. This will be covered later.
 
 Here is a sample keypair named Dev:
 
@@ -92,17 +88,19 @@ $ gnokey list
 
 We will use the this address later.
 
-## Writing & testing in Gno.Land
+Other than generating keypairs, `gnokey` is used to interact with the Gno.Land blockchain via the CLI. `Gnokey` can fetch information about an address, call functions on smart contracts and send state changes (transactions) to the network. This will be covered later.
+
+## Writing & testing in Gno
 
 In Gno.Land, smart contracts are called [Realms](https://docs.onbloc.xyz/introduction-to-gnoland/what-is-gnoland/concepts#realm). Here are three Gno.Land concepts we need to cover before diving into the actual development of Realms:
 
-1. Packages vs Realms
+1. Packages vs. Realms
 2. Render functions
 3. Paths
 
 ### Packages vs. Realms
 
-Gno.Land code can be divided into two main groups: packages & realms. Put simply, packages represent stateless code intended to be reused - libraries. Realms, on the other hand, represent smart contracts that can hold arbitrary state and functionality and can be deployed on-chain.
+Gno.Land code can be divided into two main groups: packages & realms. Put simply, packages represent stateless code intended to be reused - libraries. Realms, on the other hand, represent smart contracts that can hold arbitrary state and functionality. Both packages and realms can be uploaded on-chain.
 
 ### Render functions
 
@@ -110,21 +108,21 @@ Each realm can implement a `Render` function which allows the developer of the r
 
 ### Paths
 
-Gno.Land saves its packages and realms in a tree-like structure - similar to a classic file system. You can find added packages under the `"gno.land/p/"` path. When developing a smart contract in Gno, you can access and import these packages through their deployed paths.
+Gno.Land saves its packages and realms in a tree-like structure - similar to a classic file system. You can find added packages under the `"gno.land/p/"` path. When developing a realm in Gno, you can access and import these packages through their deployed paths.
 
-A developer must provide a path to place their realm instance upon deployment. This provides a quick and easy way to access the state of Realms.
+A developer must provide a path to place their realm upon deployment. This provides a quick and easy way to access the state of Realms.
 
 Let's get started with the code. We will build a simple app allowing users to sign up for a whitelist before a specific deadline.
 
-## Hands-on
+## Hands-on coding
 
 We will write a simple package and realm combination to act as a whitelisting service.
 
 Any user will be able to create their own whitelist with a specific sign up deadline and max user sign-up number. Any user will be able to sign up exactly once for each whitelist that has not exceeded the deadline or the max amount of sign-ups.
 
-If you're using VSCode to edit your files, you can install the `Gno` extension, which will handle syntax highlighting and code formatting.
+If you're using VSCode to edit your files, you can install the [Gno extension](https://marketplace.visualstudio.com/items?itemName=harry-hov.gno), which will handle syntax highlighting and code formatting.
 
-### Whitelist Package
+### `package whitelist`
 
 From the repo root folder, go into `examples`, and create a new directory, `whitelist`, in which we will place our code. Within that directory, create two directories that will separate the packages from the realms we write:
 
