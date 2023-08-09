@@ -122,7 +122,7 @@ Any user will be able to create their own whitelist with a specific sign up dead
 
 If you're using VSCode to edit your files, you can install the [Gno extension](https://marketplace.visualstudio.com/items?itemName=harry-hov.gno), which will handle syntax highlighting and code formatting.
 
-### `package whitelist`
+### Whitelist package
 
 From the repo root folder, go into `examples`, and create a new directory, `whitelist`, in which we will place our code. Within that directory, create two directories that will separate the packages from the realms we write:
 
@@ -131,7 +131,6 @@ cd examples
 mkdir whitelist && cd whitelist
 mkdir p && mkdir r
 cd p
-
 ```
 
 Going into the `/p/` directory we just made, we can create a file called `whitelist.gno` where we will write our package.
@@ -221,7 +220,11 @@ func (w *Whitelist) IsOwnerOfWhitelist(txSender std.Address) bool {
 
 To test the package we just wrote, we can create a new file in the same directory called `whitelist_test.gno`.
 
-In `whitelist_test.gno`, we are able to do classic Go testing upon the functionality of our package. Every function name that starts with `"Test"` will automatically be run as a test case.
+```
+touch whitelist_test.gno
+```
+
+In `whitelist_test.gno`, we are able to do classic Go testing upon the functionality of our package. Every function name that starts with `Test` will automatically be run as a test case.
 
 We use the `testutils` package to provide blockchain-specific test functionality, such as setting an arbitrary caller to a transaction or generating a new address from within the test. This package is actually found on-chain - in the file system we mentioned earlier. The GnoVM resolves the path to the `testutils` package and imports the needed tools from on-chain storage. You will see this pattern further down this tutorial as well.
 
@@ -269,13 +272,13 @@ func TestWhitelist_Setup(t *testing.T) {
 }
 ```
 
-You may have noticed that there is an unusual
-
 To compile the package and run the tests, we can run the following command from the same directory:
 
 ```
 gno test -verbose ./
 ```
+
+> _Note: The `gno` tool previously used to be called `gnodev`._
 
 ### WhitelistFactory Realm
 
@@ -287,7 +290,7 @@ cd r
 touch whitelistFactory.gno
 ```
 
-In the file, we can start writing our realm:
+In the file, we can start writing our realm. Since the realm will also handle whitelist creation, we are calling it `whitelistfactory`:
 
 ```
 package whitelistfactory
@@ -353,6 +356,8 @@ func NewWhitelist(name string, deadline int64, maxUsers int64) (int, string) {
 The function above creates an instance of a whitelist with arguments provided to it. This is a public function as indicated by the uppercase first letter in its name - meaning anyone can call it.
 
 Similar to Solidity's `msg.sender` functionality, we can use `std.GetOrigCaller()` to get the address of the transaction sender.
+
+You may have noticed the use of `time.Now().Unix()`, which is a Golang native function that returns the local system time. In this case, GnoVM interprets that function and returns the current block timestamp, in Unix seconds.
 
 Next, we need to write the function that users will use to sign up to specific whitelists.
 
@@ -422,16 +427,19 @@ func Render(path string) string {
 }
 ```
 
-We need to handle possible additional paths to our realm, so we will write a helper render function to handle the main logic.
+We need to handle possible additional arguments to our realm path, so we will write a helper render function to handle the main logic.
 
 We will generate valid markdown text based on the state of the realm into a `Buffer`, which we will finally convert into a string that will be displayed later.
 
 ```
 func renderHomepage() string {
+
+	// Define empty buffer
 	var b bytes.Buffer
 
 	b.WriteString("# Sign up to a Whitelist\n\n")
 
+	// If no whitelists have been created
 	if whitelistTree.Size() == 0 {
 		b.WriteString("### No whitelists available currently!")
 		return b.String()
@@ -439,6 +447,8 @@ func renderHomepage() string {
 
 	// Iterate through AVL tree
 	whitelistTree.Iterate("", "", func(key string, value interface{}) bool {
+
+		// cast raw data from tree into Whitelist struct
 		w := value.(*whitelist.Whitelist)
 		ddl := w.GetWhitelistDeadline()
 
@@ -502,11 +512,11 @@ That completes our realm code, and we can go onto deploying it along with the `w
 
 ## Using Gnofaucet & Gnoweb to get test tokens
 
-Gnoweb allows us to access the aforementioned on-chain file system. Gnoweb will spin up a local front end where we will find the faucet for test tokens and all of the currently deployed packages and realms.
+For this section of the tutorial, we will use the `gnoweb` and `gnofaucet` CLI tools. `Gnoweb` allows us to access the aforementioned on-chain file system. `Gnoweb` will spin up a local front end where we will find the faucet for test tokens and all of the currently deployed packages and realms.
 
 ### Setting up Gnofaucet
 
-To use the faucet, we have to set it up. This mainly includes setting a funding address for the faucet.
+To use the faucet locally, we have to set it up beforehand. This mainly includes setting a funding address for the faucet.
 
 To do this, we need to import a keypair with a pre-mined balance to `gnokey`. In the `gno.land` subfolder, run the following:
 
@@ -514,7 +524,7 @@ To do this, we need to import a keypair with a pre-mined balance to `gnokey`. In
 gnokey add --recover Faucet
 ```
 
-Gnokey will ask you to provide a mnemonic for the keypair. Put in the following mnemonic:
+`Gnokey` will ask you to provide a mnemonic for the keypair. The following mnemonic, which has a pre-mined balance as per `genesis_balances.txt`, found within `gno.land/genesis`, is the phrase for the address called `test1`.
 
 ```
 source bonus chronic canvas draft south burst lottery vacant surface solve popular case indicate oppose farm nothing bullet exhibit title speed wink action roast
@@ -532,11 +542,11 @@ gnofaucet serve --chain-id dev Faucet
 
 ### Running Gnoweb
 
-Run the `gnoweb` command from within the `gno.land` subfolder. A local front-end will be running on `127.0.0.1:8888`.
+Run the `gnoweb` command from within the `gno.land` subfolder. A local front end will start on `127.0.0.1:8888`.
 
 Gnoweb also provides us with a simple interface to send local testnet tokens to the address that we generated in the previous steps.
 
-By navigating to `http://127.0.0.1:8888/faucet`, you will be able to input the address to send tokens to.
+By navigating to `http://127.0.0.1:8888/faucet`, you will be able to input an address to send tokens to.
 
 By default, the faucet sends `1000000ugnot` to the provided address, equal to `1 GNOT` token. We will use the previously generated `Dev` keypair to receive tokens and deploy our code.
 
@@ -649,6 +659,18 @@ We call the `SignUpToWhitelist` with the `whitelistID` argument being `0`. After
 
 ![User signup view](./src/signedup.png)
 
-This concludes our tutorial. Once again, congratulations on writing your first realm in Gno. You've become a Gno.Land hero!
+Finally, if you'd wish to restart and wipe the node data, shut the gnoland node down, and run the following from within the `gno.land` folder:
+
+```
+make fclean && make build && make install
+```
+
+Then, to start the node again, run:
+
+```
+gnoland start
+```
+
+This concludes our tutorial. Once again, congratulations on writing your first realm in Gno. You've become a real Gno.Land hero!
 
 If you'd like to see the full repository, it can be found [here](https://github.com/leohhhn/gnoland_zero_to_hero/).
