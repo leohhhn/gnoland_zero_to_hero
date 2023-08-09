@@ -14,7 +14,7 @@ Gno.Land is a Layer 1 blockchain network based on Tendermint2 technology. It aim
 
 ## Tutorial/Tech overview
 
-> _Note: Familiarity with Golang, although not a necessity, is highly recommended in order to follow this tutorial._
+> _Note: Familiarity with Golang, although not a strict necessity, is highly recommended in order to follow this tutorial._
 
 In this tutorial we will go over the necessary tools and procedures required to develop in Gno.Land. These are:
 
@@ -22,7 +22,7 @@ In this tutorial we will go over the necessary tools and procedures required to 
 2. Generating a Gno.Land keypair with `Gnokey`
 3. Writing, testing, and deploying a smart contract in `Gno` to a local node
 4. Using `Gnofaucet` & `Gnoweb` to get test tokens
-5. Deploying our smart contract to a local testnet
+5. Deploying our code to a local testnet
 
 ## Environment setup
 
@@ -57,6 +57,8 @@ make build && make install
 ```
 
 This completes the environment setup.
+
+To follow this tutorial, it is recommended to have the most up-to-date docs open. This is the [Gno Developer Portal](https://docs.onbloc.xyz/).
 
 ## Generating a Gno.Land keypair with Gnokey
 
@@ -103,13 +105,13 @@ Gno.Land code can be divided into two main groups: packages & realms. Put simply
 
 ### Render functions
 
-Each Realm can implement a `Render` function which allows the developer of the Realm to display the state the way they intend to. A render function should return a valid markdown string. Of course, similar to Solidity, Gno also has the concept of `view` functions, allowing the state of the contract to be displayed in an arbitrary UI.
+Each realm can implement a `Render` function which allows the developer of the realm to display the state the way they intend to. A render function should return a valid markdown string. Of course, similar to Solidity, Gno also has the concept of `view` functions, allowing the state of the contract to be displayed in an arbitrary UI.
 
 ### Paths
 
 Gno.Land saves its packages and realms in a tree like structure - similar to a classic file system. You will be able to find added packages under the `"gno.land/p/"` path. When developing a smart contract in Gno, you will be able to access and import these packages through the paths they are deployed to.
 
-Upon deployment, a developer must(?) provide a path to place their Realm instance at. This provides a quick and easy way to access the state of Realms.
+Upon deployment, a developer must provide a path to place their realm instance at. This provides a quick and easy way to access the state of Realms.
 
 Let's get started with code. We will be building a simple app that will allow users to sign up for a whitelist before a certain deadline.
 
@@ -216,11 +218,13 @@ func (w *Whitelist) IsOwnerOfWhitelist(txSender std.Address) bool {
 }
 ```
 
-This completes our whitelist package. In order to test it, we can create a new file in the same directory called `whitelist_test.gno`.
+### Testing the package
+
+To test the package we just wrote, we can create a new file in the same directory called `whitelist_test.gno`.
 
 In `whitelist_test.gno`, we are able to do classic Go testing upon the functionality of our package. Every function name that starts with `"Test"` will automatically be run as a test case.
 
-We are using the `testutils` package to provide blockchain-specific test functionality, such as setting an arbitrary caller to a transaction, or generating a new address from a within the test.
+We are using the `testutils` package to provide blockchain-specific test functionality, such as setting an arbitrary caller to a transaction, or generating a new address from a within the test. This package is actually found on-chain - in the file system we mentioned earlier. The GnoVM resolves the path to the `testutils` package and imports the needed tools from on-chain storage. You will see this pattern further down this tutorial as well.
 
 ```
 package whitelist
@@ -266,6 +270,8 @@ func TestWhitelist_Setup(t *testing.T) {
 }
 ```
 
+You may have noticed that there is an unusual
+
 To compile the package and run the tests, we can run the following command from the same directory:
 
 ```
@@ -274,7 +280,7 @@ gno test -verbose ./
 
 ### WhitelistFactory Realm
 
-The main thing that differentiates packages from realms is the fact that realms hold state, and have a initializer function. In our `/r/` directory, create a new file `whitelistFactory.gno`:
+This is where the bulk of our functionality will be. The main thing that differentiates packages from realms is the fact that realms hold state, and have a initializer function. In our `/r/` directory, create a new file `whitelistFactory.gno`:
 
 ```
 cd ..
@@ -282,7 +288,7 @@ cd r
 touch whitelistFactory.gno
 ```
 
-In the file, we can start writing our Realm:
+In the file, we can start writing our realm:
 
 ```
 package whitelistfactory
@@ -312,9 +318,10 @@ Here, we have two particular Gno-specific things: the AVL Tree, and the `init()`
 
 Since all actions on the Gno.Land blockchain must be detereministic, we are unable to use the native Go `map` functionality to store our data. This is why we are using custom-built [AVL trees](https://docs.onbloc.xyz/docs/packages#avl), and expose a classic `get/set` API to the developer.
 
-We also have a `init()` function which will run upon deployment of the Realm. Upon deployment, we are simply instantiating the AVL tree that will store all of our Whitelist instances.
+We also have a `init()` function which will run upon deployment of the realm. Upon deployment, we are simply instantiating the AVL tree that will store all of our Whitelist instances.
 
 Moving on:
+
 ```
 func NewWhitelist(name string, deadline int64, maxUsers int64) (int, string) {
 
@@ -351,12 +358,13 @@ Similar to Solidity's `msg.sender` functionality, we can use `std.GetOrigCaller(
 Next, we need to write the function that users will use to sign up to specific whitelists.
 
 To sign up to a whitelist, 4 conditions must be met:
-1. The whitelist must exist
+
+1. The whitelist with specificed ID must exist
 2. The sign-up deadline must be in the future
 3. The user cannot already be on the whitelist
 4. The whitelist must have enough room for the user to sign up
 
-If all conditions are met, we will update the whitelist instance in the AVL tree to its new state. 
+If all conditions are met, we will update the whitelist instance in the AVL tree to its new state.
 
 ```
 func SignUpToWhitelist(whitelistID int) string {
@@ -403,12 +411,24 @@ func SignUpToWhitelist(whitelistID int) string {
 
 ```
 
-Finally, we will write a `Render` function to be able to display the state of our Realm. The Render function will display all whitelists that currently exist in the state of the Realm, along with their details.
-
-We will put valid markdown lines generated based on the state of the Realm into a `Buffer`, which we will finally convert into a string that will be dispalyed later.
+Finally, we will write a `Render` function to be able to display the state of our realm. The Render function will display all whitelists that currently exist in the state of the realm, along with their details.
 
 ```
-func Render() string {
+func Render(path string) string {
+	if path == "" {
+		return renderHomepage()
+	}
+
+	return "unknown page"
+}
+```
+
+We need to handle possible additional paths to our realm, so we will write a helper render function that will handle the main logic.
+
+We will generate valid markdown text based on the state of the realm into a `Buffer`, which we will finally convert into a string that will be dispalyed later.
+
+```
+func renderHomepage() string {
 	var b bytes.Buffer
 
 	b.WriteString("# Sign up to a Whitelist\n\n")
@@ -479,15 +499,17 @@ func Render() string {
 }
 ```
 
-That completes our realm code, and we can go onto deploying it alogn with the `whitelist` package from before.
+That completes our realm code, and we can go onto deploying it along with the `whitelist` package from before.
 
 ## Using Gnofaucet & Gnoweb to get test tokens
 
-We can easily access the aforementioned file system which holds all packages and realms with the use of `gnoweb`. Gnoweb will spin up a local front-end that can allow you to see already deployed packages and realms.
+Gnoweb allows us to access the aforementioned on-chain file system. Gnoweb will spin up a local front-end where we will find the faucet for test tokens, as well as all of the currently deployed packages and realms.
 
 ### Setting up Gnofaucet
 
-To fund the faucet, we need to import an keypair with a pre-mined balance to `gnokey`. Run the following:
+To use the faucet, we have to set it up. This mainly inlcudes setting a funding address for the faucet.
+
+To do this, we need to import a keypair with a pre-mined balance to `gnokey`. In the `gno.land` subfolder, run the following:
 
 ```
 gnokey add --recover Faucet
@@ -515,9 +537,9 @@ Run the `gnoweb` command from within the `gno.land` subfolder. A local front-end
 
 Gnoweb also provides us with a simple interface to send local testnet tokens to our address that we generated in the previous steps.
 
-By going to `http://127.0.0.1:8888/faucet`, you will be able to input the address to send tokens to.
+By navigating to `http://127.0.0.1:8888/faucet`, you will be able to input the address to send tokens to.
 
-By default, the faucet sends `1000000ugnot` to the provided address, which is equal to `1 GNOT` token.
+By default, the faucet sends `1000000ugnot` to the provided address, which is equal to `1 GNOT` token. We will use the previously generated `Dev` keypair to receive tokens and deploy our code.
 
 In order to check the balance of your address, you can use the [query](https://docs.onbloc.xyz/docs/cli/gnokey#make-an-abci-query) functionality of `gnokey` to make an ABCI query to the node.
 
@@ -528,3 +550,106 @@ height: 0
 data: "1000000ugnot"
 
 ```
+
+## Deployment
+
+First, we need to deploy our `whitelist` package. Navigate to the package directory `examples/whitelist/p`, and run the following command:
+
+```
+gnokey maketx addpkg \
+--pkgpath "gno.land/p/demo/whitelist" \
+--pkgdir "./examples/whitelist/p" \
+--gas-fee 10000000ugnot \
+--gas-wanted 800000 \
+--broadcast \
+--chainid dev \
+--remote localhost:26657 \
+Dev
+```
+
+As mentioned earlier, `gnokey` is used to interact with Gno.Land. Let's analyze the subcommands and flags in detail:
+
+1. `maketx` - signs and broadcasts a transaction
+2. `addpkg` - indicates that the transaction will upload a new package or realm
+3. `--pkgpath` - path where the package/realm will be placed on-chain
+4. `--pkgdir` - local path where the package/realm is located
+5. `--gas-wanted` - the upper limit for units of gas for the execution of the transaction - similar to Solidity's `gas limit`
+6. `--gas-fee` - Solidity's `gas-price`. Price of `$GNOT` to pay per gas unit
+7. `--broadcast` - broadcast the transaction on-chain
+8. `--chain-id` - id of the chain to connect to, in our case the local node, `dev`
+9. `--remote` - specify node endpoint, in our case it's our local node
+10. `Dev` - the keypair to use for the transaction
+
+After running the command, if successfull, we should get the following output:
+
+```
+OK!
+GAS WANTED: 800000
+GAS USED:   775097
+```
+
+Now our package can be seen on-chain. We can take a look at the code with `gnoweb`, by visiting the path we uploaded it to: `127.0.0.1:8888/p/demo/whitelist`.
+
+Let's deploy our realm now:
+
+```
+gnokey maketx addpkg \
+--pkgpath "gno.land/r/demo/whitelist" \
+--pkgdir "./examples/whitelist/r" \
+--gas-fee 10000000ugnot \
+--gas-wanted 800000 \
+--broadcast \
+--chainid dev \
+--remote localhost:26657 \
+Dev
+```
+
+Congrats!
+
+If all went well, you've just written and uploaded your first Gno.Land package and realm. You can visit the realm path to see the `Render` function in action: `127.0.0.1:8888/r/demo/whitelist`. It should look something like this:
+
+![Default view](./src/defaultview.png)
+
+Finally, let's interact with our realm. Again, we are using `gnokey`, but this time around, instead of `addpkg`, we will use the `call` subcommand, which will call a specific public function on a realm:
+
+```
+gnokey maketx call \
+--pkgpath "gno.land/r/demo/whitelist" \
+--func "NewWhitelist" \
+--args "First whitelist!" \
+--args 1691588726 \
+--args 10 \
+--gas-fee 10000000ugnot \
+--gas-wanted 800000 \
+--broadcast  \
+--remote localhost:26657 \
+Dev
+```
+
+The above command calls the NewWhitelist function in our realm, passing it the `name`, `deadline` and `maxUser` arguments. Make sure to use a deadline that is in the future. You can use a tool like [UnixTimestamp] (https://www.unixtimestamp.com/ to get a unix seconds representation of a date and time.
+
+If the command was successful, we can see the state update on the realm through `gnoweb`.
+
+![Whitelist created view](./src/whitelistcreated.png)
+
+Finally, we can try to sign up to the whitelist:
+
+```
+gnokey maketx call \
+--pkgpath "gno.land/r/demo/whitelist" \
+--func "SignUpToWhitelist" \
+--args 0 \
+--gas-fee 10000000ugnot \
+--gas-wanted 800000 \
+--broadcast  \
+--remote localhost:26657 \
+Dev
+```
+
+We call the `SignUpToWhitelist` with the `whitelistID` argument being `0`. After the transaction goes through, we can see the state update:
+
+![User signup view](./src/signedup.png)
+
+This concludes our tutorial. Once again, congratulations for writing your first realm in Gno. You've become a Gno.Land hero!
+
+If you'd like to see the full repository, it can be found [here](https://github.com/leohhhn/gnoland_zero_to_hero/).

@@ -5,7 +5,7 @@ gnokey maketx addpkg \
 --pkgpath "gno.land/p/demo/whitelist" \
 --pkgdir "./examples/whitelist/p" \
 --gas-fee 10000000ugnot \
---gas-wanted 8000000 \
+--gas-wanted 800000 \
 --broadcast \
 --chainid dev \
 --remote localhost:26657 \
@@ -19,7 +19,7 @@ gnokey maketx addpkg \
 --pkgpath "gno.land/r/demo/whitelist" \
 --pkgdir "./examples/whitelist/r" \
 --gas-fee 10000000ugnot \
---gas-wanted 8000000 \
+--gas-wanted 800000 \
 --broadcast \
 --chainid dev \
 --remote localhost:26657 \
