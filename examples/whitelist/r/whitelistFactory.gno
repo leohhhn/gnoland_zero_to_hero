@@ -26,12 +26,16 @@ func init() {
 // @param maxUsers - maximum number of users allowed to sign up to deadlist
 // @return - ID of whitelist, status message
 func NewWhitelist(name string, deadline int64, maxUsers int64) (int, string) {
+
+	// Check if deadline is in the past
 	if deadline <= time.Now().Unix() {
 		return -1, "deadline cannot be in the past"
 	}
 
+	// Get user who sent the transaction
 	txSender := std.GetOrigCaller()
 
+	// We will use the current size of the tree for the ID
 	id := whitelistTree.Size()
 
 	if maxUsers <= 0 {
@@ -51,15 +55,21 @@ func NewWhitelist(name string, deadline int64, maxUsers int64) (int, string) {
 // @param whitelistID - ID of whitelist to sign up to
 // @return - status message
 func SignUpToWhitelist(whitelistID int) string {
+	// Get ID
 	id := ufmt.Sprintf("%d", whitelistID)
+	// Get txSender
 	txSender := std.GetOrigCaller()
+
+	// Try to get specific whitelist from AVL tree
 	whiteListRaw, exists := whitelistTree.Get(id)
 
 	if !exists {
 		return "whitelist does not exist"
 	}
 
+	// Cast raw Tree data into "Whitelist" type
 	w, _ := whiteListRaw.(*whitelist.Whitelist)
+
 	ddl := w.GetWhitelistDeadline()
 
 	// error handling
@@ -67,10 +77,12 @@ func SignUpToWhitelist(whitelistID int) string {
 		return "user already in whitelist"
 	}
 
+	// If deadline has passed
 	if ddl.Unix() <= time.Now().Unix() {
 		return "whitelist already closed"
 	}
 
+	// If whitelist is full
 	if w.GetMaxUsers() <= int64(len(w.GetWhitelistedUsers())) {
 		return "whitelist full"
 	}
