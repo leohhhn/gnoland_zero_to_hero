@@ -31,7 +31,7 @@ Dev
 ```
 gnokey maketx call \
 --pkgpath "gno.land/r/demo/whitelist" \
---func "NewWhitelistInstance" \
+--func "NewWhitelist" \
 --args "First whitelist!" \
 --args 1691588726 \
 --args 10 \

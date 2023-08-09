@@ -48,7 +48,7 @@ func (w *Whitelist) AddUserToList(userToAdd std.Address) bool {
 	w.userList = append(w.userList, userToAdd)
 	return true
 }
-
+// returns true if userToCheck is on whitelist w
 func (w *Whitelist) IsOnWhitelist(userToCheck std.Address) bool {
 	for _, user := range w.GetWhitelistedUsers() {
 		if user.String() == userToCheck.String() {
@@ -58,7 +58,7 @@ func (w *Whitelist) IsOnWhitelist(userToCheck std.Address) bool {
 	return false
 }
 
-// returns true if txSender is owner of ws
+// returns true if txSender is owner of w
 func (w *Whitelist) IsOwnerOfWhitelist(txSender std.Address) bool {
 	return txSender == w.GetWhitelistOwner()
 }

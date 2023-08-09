@@ -10,44 +10,49 @@ import (
 	"gno.land/p/demo/whitelist"
 )
 
+// State variables
 var (
 	whitelistTree *avl.Tree
 )
 
+// Constructor
 func init() {
 	whitelistTree = avl.NewTree()
 }
 
-func NewWhitelistInstance(name string, deadline int64, maxUsers int64) (int, string) {
-
+// Creates new whitelist instance
+// @param name - name of new whitelist instance
+// @param deadline - deadline for signing up to whitelist, in unix seconds
+// @param maxUsers - maximum number of users allowed to sign up to deadlist
+// @return - ID of whitelist, status message
+func NewWhitelist(name string, deadline int64, maxUsers int64) (int, string) {
 	if deadline <= time.Now().Unix() {
 		return -1, "deadline cannot be in the past"
 	}
 
 	txSender := std.GetOrigCaller()
 
-	id := whitelistTree.Size() // what type?
+	id := whitelistTree.Size()
 
 	if maxUsers <= 0 {
 		return -1, "Maximum number of users cannot be less than 1"
 	}
 
+	// Create new whitelist instance
 	w := whitelist.NewWhitelist(name, time.Unix(deadline, 0), maxUsers, txSender)
 
-	whitelistTree.Set(
-		ufmt.Sprintf("%d", id),
-		w,
-	)
+	// Update AVL tree with new state
+	whitelistTree.Set(ufmt.Sprintf("%d", id), w)
 
 	return id, "successfully created whitelist!"
 }
 
+// Signs up txSender to whitelist
+// @param whitelistID - ID of whitelist to sign up to
+// @return - status message
 func SignUpToWhitelist(whitelistID int) string {
-
 	id := ufmt.Sprintf("%d", whitelistID)
-
 	txSender := std.GetOrigCaller()
-
 	whiteListRaw, exists := whitelistTree.Get(id)
 
 	if !exists {
@@ -55,7 +60,6 @@ func SignUpToWhitelist(whitelistID int) string {
 	}
 
 	w, _ := whiteListRaw.(*whitelist.Whitelist)
-
 	ddl := w.GetWhitelistDeadline()
 
 	// error handling
@@ -64,23 +68,23 @@ func SignUpToWhitelist(whitelistID int) string {
 	}
 
 	if ddl.Unix() <= time.Now().Unix() {
-		return "whitelist already closed :/"
+		return "whitelist already closed"
 	}
 
 	if w.GetMaxUsers() <= int64(len(w.GetWhitelistedUsers())) {
 		return "whitelist full"
 	}
 
+	// Add txSender to user list
 	w.AddUserToList(txSender)
 
-	whitelistTree.Set(
-		id,
-		w,
-	)
+	// Update the AVL tree with new state
+	whitelistTree.Set(id, w)
 
 	return ufmt.Sprintf("successfully added user to whitelist %d", whitelistID)
 }
 
+// Default render function
 func Render(path string) string {
 	if path == "" {
 		return renderHomepage()
@@ -89,24 +93,23 @@ func Render(path string) string {
 	return "unknown page"
 }
 
+// Renders all whitelists with their details
 func renderHomepage() string {
 	var b bytes.Buffer
 
-	b.WriteString("# Sign up to a Whitelist!\n\n")
+	b.WriteString("# Sign up to a Whitelist\n\n")
 
 	if whitelistTree.Size() == 0 {
-		// No parties available
 		b.WriteString("### No whitelists available currently!")
-
 		return b.String()
 	}
 
-	// For each category, write the name
+	// Iterate through AVL tree
 	whitelistTree.Iterate("", "", func(key string, value interface{}) bool {
-		// Write out the whitelist details
 		w := value.(*whitelist.Whitelist)
 		ddl := w.GetWhitelistDeadline()
 
+		// Add whitelist name
 		b.WriteString(
 			ufmt.Sprintf(
 				"## Whitelist #%s: %s\n",
@@ -115,6 +118,7 @@ func renderHomepage() string {
 			),
 		)
 
+		// Check if whitelist deadline is past due
 		if ddl.Unix() > time.Now().Unix() {
 			b.WriteString(
 				ufmt.Sprintf(
@@ -125,11 +129,12 @@ func renderHomepage() string {
 		} else {
 			b.WriteString(
 				ufmt.Sprintf(
-					"Whitelist sign-ups closed!\n",
+					"Whitelist sign-ups closed!\n\n",
 				),
 			)
 		}
 
+		// List max number of users in waitlist
 		b.WriteString(
 			ufmt.Sprintf(
 				"Maximum number of users in whitelist: %d\n\n",
@@ -137,7 +142,7 @@ func renderHomepage() string {
 			),
 		)
 
-		// Print whitelisted users
+		// List all users that are currently whitelisted
 		if users := w.GetWhitelistedUsers(); len(users) > 0 {
 			b.WriteString(
 				ufmt.Sprintf("Currently whitelisted users: %d\n\n", len(users)),
@@ -153,8 +158,6 @@ func renderHomepage() string {
 		}
 
 		b.WriteString("\n")
-
-		// Continue iteration
 		return false
 	})
 
