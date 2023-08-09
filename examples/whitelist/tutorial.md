@@ -1,6 +1,6 @@
 # From Zero to Gno.Land Hero
 
-> _Written by @leohhhn, August 10th 2023_
+> _August 10th 2023_
 
 In this tutorial, we will enter the world of **Gno.Land**, and build our own smart contract using the **Gno** programming language. Gno is an interpreted version of Golang that shares 99% of the functionality with Go, allowing us to write blockchain-specific code in a secure, battle-tested language that many developers already have in their skill set.
 
@@ -12,7 +12,7 @@ Gno.Land is a layer 1 blockchain network based on Tendermint2 technology. It aim
 
 ## Tutorial overview
 
-> _Note: Familiarity with Golang, although not a strict necessity, is highly recommended to follow this tutorial._
+> _Note: Familiarity with Golang, although not a strict necessity, is recommended to follow this tutorial._
 
 This tutorial will review the tools and procedures required to develop in Gno.Land. These are:
 
@@ -104,7 +104,7 @@ Gno.Land code can be divided into two main groups: packages & realms. Put simply
 
 ### Render functions
 
-Each realm can implement a `Render` function which allows the developer of the realm to display the state the way they intend to. A render function should return a valid markdown string. Of course, similar to Solidity, Gno also has the concept of `view` functions, allowing the state of the contract to be displayed in an arbitrary UI.
+Each realm can implement a `Render` function which allows the developer of the realm to display the state the way they intend to. A render function should return a valid markdown string. Of course, similar to Solidity, Gno also has the concept of `view` functions, allowing the state of the realm to be displayed in an arbitrary UI.
 
 ### Paths
 
@@ -112,7 +112,7 @@ Gno.Land saves its packages and realms in a tree-like structure - similar to a c
 
 A developer must provide a path to place their realm upon deployment. This provides a quick and easy way to access the state of Realms.
 
-Let's get started with the code. We will build a simple app allowing users to sign up for a whitelist before a specific deadline.
+Let's get started with the code. We will build aN app allowing users to sign up for whitelists before a specific deadline.
 
 ## Hands-on coding
 
@@ -159,7 +159,7 @@ type Whitelist struct {
 
 ```
 
-We will use the [standard library](https://docs.onbloc.xyz/docs/standard-libraries) provided by Gno to handle blockchain-specific data types. In the code above, we are defining a struct that will hold all information we need about a specific whitelist. We use `std.Address` as the native address type provided in Gno.
+We will use the [standard library](https://docs.onbloc.xyz/docs/standard-libraries) provided by Gno to handle blockchain-specific data types and functionality. In the code above, we are defining a struct that will hold all information we need about a specific whitelist. We use `std.Address` as the native address type provided in Gno.
 
 Next, we can write functions that we will need to act upon this struct:
 
@@ -246,10 +246,10 @@ func TestWhitelist_Setup(t *testing.T) {
 		maxUsers = 100
 	)
 
-   // generate mock address
+    // generate mock address
 	alice := testutils.TestAddress("alice")
 
-   // use mock address to execute test transaction
+    // use mock address to execute test transaction
 	std.TestSetOrigCaller(alice)
 
 	w := NewWhitelist(name, deadline, int64(maxUsers), alice)
@@ -318,9 +318,9 @@ func init() {
 
 Here, we have two particular Gno-specific things: the AVL Tree and the `init()` function.
 
-Since all actions on the Gno.Land blockchain must be deterministic, we are unable to use the native Go `map` functionality to store our data. This is why we are using custom-built [AVL trees](https://docs.onbloc.xyz/docs/packages#avl), and expose a classic `get/set` API to the developer.
+Since all actions on the Gno.Land blockchain must be deterministic, we are unable to use the native Go `map` functionality to store our data. This is why we are using custom-built [AVL trees](https://docs.onbloc.xyz/docs/packages#avl), which expose a classic `get/set` API to the developer.
 
-We also have a `init()` function which will run upon deployment of the realm. Upon deployment, we simply instantiate the AVL tree that will store all of our Whitelist instances.
+We also have an `init()` function which will run upon deployment of the realm. At deployment, we simply instantiate the AVL tree that will store all of our Whitelist instances.
 
 Moving on:
 
@@ -546,7 +546,7 @@ Run the `gnoweb` command from within the `gno.land` subfolder. A local front end
 
 Gnoweb also provides us with a simple interface to send local testnet tokens to the address that we generated in the previous steps.
 
-By navigating to `http://127.0.0.1:8888/faucet`, you will be able to input an address to send tokens to.
+By navigating to `127.0.0.1:8888/faucet`, you will be able to input an address to send tokens to.
 
 By default, the faucet sends `1000000ugnot` to the provided address, equal to `1 GNOT` token. We will use the previously generated `Dev` keypair to receive tokens and deploy our code.
 
@@ -557,7 +557,6 @@ $ gnokey query bank/balances/bank/balances/g10rdr9mhc7xzlyqt9fu3nhl95jy8hmfdyws8
 
 height: 0
 data: "1000000ugnot"
-
 ```
 
 ## Deployment to a local testnet
@@ -583,7 +582,7 @@ As mentioned earlier, `gnokey` is used to interact with Gno.Land. Let's analyze 
 3. `--pkgpath` - path where the package/realm will be placed on-chain
 4. `--pkgdir` - local path where the package/realm is located
 5. `--gas-wanted` - the upper limit for units of gas for the execution of the transaction - similar to Solidity's `gas limit`
-6. `--gas-fee` - Solidity's `gas-price`. Price of `$GNOT` to pay per gas unit
+6. `--gas-fee` - similar to Solidity's `gas-price`
 7. `--broadcast` - broadcast the transaction on-chain
 8. `--chain-id` - id of the chain to connect to, in our case the local node, `dev`
 9. `--remote` - specify node endpoint, in our case it's our local node
@@ -635,7 +634,7 @@ gnokey maketx call \
 Dev
 ```
 
-The above command calls the NewWhitelist function in our realm, passing it the `name,` `deadline,` and `maxUser` arguments. Make sure to use a deadline that is in the future. You can use a tool like [UnixTimestamp] (https://www.unixtimestamp.com/ to get a Unix seconds representation of a date and time.
+The above command calls the NewWhitelist function in our realm, passing it the `name,` `deadline,` and `maxUser` arguments. Make sure to use a deadline that is in the future. You can use a tool like [UnixTimestamp](https://www.unixtimestamp.com/) to get a Unix seconds representation of a specific date and time.
 
 If the command was successful, we can see the state update on the realm through `gnoweb`.
 
@@ -673,4 +672,4 @@ gnoland start
 
 This concludes our tutorial. Once again, congratulations on writing your first realm in Gno. You've become a real Gno.Land hero!
 
-If you'd like to see the full repository, it can be found [here](https://github.com/leohhhn/gnoland_zero_to_hero/).
+If you'd like to see the full repository used for this tutorial, it can be found [here](https://github.com/leohhhn/gnoland_zero_to_hero/).
