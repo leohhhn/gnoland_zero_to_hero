@@ -561,7 +561,7 @@ data: "1000000ugnot"
 
 ## Deployment to a local testnet
 
-First, we need to deploy our `whitelist` package. Make sure that the local node is running, and navigate to the package directory `examples/whitelist/p`, and run the following command:
+First, we need to deploy our `whitelist` package. Make sure that the local node is running, and navigate to the the root of the repo, and run the following command:
 
 ```
 gnokey maketx addpkg \
