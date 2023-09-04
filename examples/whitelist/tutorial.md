@@ -112,7 +112,7 @@ Gno.Land saves its packages and realms in a tree-like structure - similar to a c
 
 A developer must provide a path to place their realm upon deployment. This provides a quick and easy way to access the state of Realms.
 
-Let's get started with the code. We will build aN app allowing users to sign up for whitelists before a specific deadline.
+Let's get started with the code. We will build an app allowing users to sign up for whitelists before a specific deadline.
 
 ## Hands-on coding
 
