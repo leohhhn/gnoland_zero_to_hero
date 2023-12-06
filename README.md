@@ -1,3 +1,3 @@
 # Gno.Land Zero to Hero
 
-See the full tutorial [here](./examples/whitelist/tutorial.md).
+This repo will be archived, and the tutorial will be moved to [this](https://github.com/leohhhn/gno/tree/from_zero_to_gnoland_hero) repo.
